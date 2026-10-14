@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Read Skool courses instead of watching them. Clean transcripts, and every video if you want them. By Above Top Secret.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#040604">
+<link rel="canonical" href="https://skrape.abovetopsecret.ai/">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website"><meta property="og:site_name" content="abovetopsecret">
+<meta property="og:title" content="skrape"><meta property="og:description" content="Read Skool courses instead of watching them. Clean transcripts, and every video if you want them. One command to install.">
+<meta property="og:url" content="https://skrape.abovetopsecret.ai/"><meta property="og:image" content="https://skrape.abovetopsecret.ai/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="skrape terminal logo with the install command">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="skrape"><meta name="twitter:description" content="Read Skool courses instead of watching them. Clean transcripts, and every video if you want them."><meta name="twitter:image" content="https://skrape.abovetopsecret.ai/og.png">
+<title>skrape</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* ABOVE TOP SECRET · software delivery terminal. Single committed theme: phosphor on black. */
+:root {
+  --bg: #040604; --bg-2: #0A0F0A; --frame: #111811;
+  --ink: #C9F5CF; --ink-2: #7FBF8C; --ink-3: #3F6B49;
+  --phos: #5DF07A; --phos-dim: #2E7D46; --amber: #E6B450; --red: #E5484D;
+  --glow: 0 0 6px rgba(93, 240, 122, .45);
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.55 "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  padding: 0 16px; padding-block: 28px 40px; min-height: 100vh;
+}
+body::after { /* scanlines + vignette */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);
+}
+.term {
+  max-width: 900px; margin: 0 auto; background: var(--bg-2); border: 1px solid #1D2A1E; border-radius: 8px;
+  box-shadow: 0 0 0 1px #000, 0 30px 80px rgba(0,0,0,.7), inset 0 0 120px rgba(93,240,122,.04);
+  overflow: hidden;
+}
+.bar {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--frame); border-bottom: 1px solid #1D2A1E;
+  font-size: 12px; color: var(--ink-2); letter-spacing: .06em;
+}
+.bar i { width: 10px; height: 10px; border-radius: 50%; background: #2A3A2C; display: inline-block; }
+.bar i:first-child { background: #5A2C2C; }
+.bar span { margin-left: auto; text-transform: uppercase; }
+.screen { padding: 22px 26px 30px; text-shadow: var(--glow); }
+@media (max-width: 520px) { .screen { padding: 16px 14px 24px; } }
+
+/* boot */
+.boot { color: var(--ink-2); font-size: 13px; margin-bottom: 22px; }
+.boot div { white-space: pre-wrap; }
+.logo { font: 64px/0.9 "VT323", "IBM Plex Mono", monospace; color: var(--phos); letter-spacing: .04em; margin: 0 0 10px; text-shadow: 0 0 18px rgba(93,240,122,.5); }
+@media (max-width: 520px) { .logo { font-size: 44px; } }
+.meter { display: inline-block; width: 26ch; max-width: 70%; height: 10px; border: 1px solid var(--ink-3); vertical-align: middle; margin: 4px 8px 8px 0; position: relative; }
+.meter b { position: absolute; inset: 1px; width: 0; background: var(--phos); animation: fill 1.6s steps(26) forwards; }
+@keyframes fill { to { width: calc(100% - 2px); } }
+.ok { color: var(--phos); }
+.ver { margin-top: 8px; color: var(--ink-3); font-size: 12px; white-space: pre-wrap; }
+
+/* the command */
+.hero { margin: 22px 0 6px; }
+.hero .lbl { color: var(--ink-2); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 8px; }
+.copy { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; background: #000; border: 1px solid var(--phos-dim); padding: 12px 14px; }
+.copy code { color: var(--phos); font-size: 15px; overflow-wrap: anywhere; }
+.copy code::before { content: "$ "; color: var(--ink-3); }
+.copy button { margin-left: auto; flex: none; background: transparent; color: var(--ink-2); border: 1px solid var(--ink-3); font: inherit; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 4px 10px; cursor: pointer; }
+.copy button:hover, .copy button:focus-visible { color: var(--phos); border-color: var(--phos); outline: none; }
+.hero .sub { color: var(--ink-2); font-size: 13px; margin-top: 8px; max-width: 70ch; }
+
+/* session lines */
+.cmd { margin: 26px 0 8px; color: var(--ink); white-space: pre-wrap; }
+.cmd::before { content: "% "; color: var(--phos); }
+.cmd b { color: var(--amber); font-weight: 400; }
+.out { margin: 0 0 0 2ch; color: var(--ink); }
+.out p { margin: 0 0 10px; max-width: 68ch; }
+.out .k { color: var(--ink-2); }
+.kv { display: grid; grid-template-columns: 11ch 1fr; gap: 3px 12px; margin: 4px 0; }
+.kv dt { color: var(--ink-2); text-transform: uppercase; font-size: 12px; letter-spacing: .12em; padding-top: 2px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.class { color: var(--red); }
+
+/* steps: a real sequence */
+.steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 16px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 6ch 1fr; gap: 10px; max-width: 74ch; }
+.steps li::before { content: "[" counter(s) "/" attr(data-n) "]"; color: var(--phos); }
+.steps h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--phos); text-transform: uppercase; letter-spacing: .06em; }
+.steps p { margin: 0 0 6px; }
+pre { margin: 8px 0 6px; padding: 10px 12px; background: #000; border: 1px solid #1D2A1E; color: var(--amber); overflow-x: auto; font: inherit; font-size: 14px; text-shadow: none; }
+kbd, code { font: inherit; color: var(--amber); }
+
+/* report */
+table { border-collapse: collapse; width: 100%; margin-top: 6px; font-variant-numeric: tabular-nums; font-size: 14px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px dashed var(--ink-3); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 400; text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
+td.s { white-space: nowrap; }
+.pass { color: var(--phos); } .warn { color: var(--amber); }
+.wrap { overflow-x: auto; }
+ul { margin: 6px 0 0; padding-left: 2ch; } li { margin: 4px 0; }
+.note { border-left: 2px solid var(--amber); padding: 6px 12px; margin: 10px 0; color: var(--ink-2); max-width: 70ch; }
+
+.cursor { display: inline-block; width: .6ch; height: 1.1em; background: var(--phos); vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+.foot { margin-top: 30px; color: var(--ink-3); font-size: 12px; }
+ol.plain { margin: 6px 0 0; padding-left: 2.2ch; max-width: 68ch; } ol.plain li { margin: 4px 0; }
+ul.plain { margin: 2px 0 12px; padding-left: 2ch; max-width: 68ch; list-style: "- "; } ul.plain li { margin: 3px 0; }
+.out p.k { margin: 6px 0 2px; white-space: pre-wrap; }
+a { color: var(--phos); }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes flicker { 0% { opacity: .6; } 6% { opacity: .95; } 9% { opacity: .7; } 14% { opacity: 1; } }
+.screen { animation: flicker 1.2s ease-out 1; }
+@media (prefers-reduced-motion: reduce) { .screen, .meter b, .cursor { animation: none; } .meter b { width: calc(100% - 2px); } }
+@media print { body::after { display: none; } .term { box-shadow: none; } .screen { text-shadow: none; animation: none; } .meter b { width: calc(100% - 2px); animation: none; } }
+</style>
+
+<div class="term">
+  <div class="bar"><i></i><i></i><i></i> abovetopsecret</div>
+  <div class="screen">
+    <div class="boot" id="boot"></div>
+    <div class="hero" id="hero"></div>
+    <div id="log"></div>
+    <div class="cmd"><span class="cursor"></span></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+//  DELIVERY TEMPLATE. Edit this object for the next tool. Everything below renders from it.
+// ============================================================================
+const delivery = {
+  name: "skrape",
+  tagline: "Read Skool courses instead of watching them. Clean, timestamped transcripts of every lesson, and every video if you want them.",
+  version: "0.2.2",
+  date: "September 24, 2026",
+  installURL: "https://skrape.abovetopsecret.ai/install",
+  requires: "macOS or Linux, Node 22.13+ (the installer sets it up if you have Homebrew), a Skool community you belong to",
+  steps: [
+    "Run the command. It installs skrape and opens it.",
+    "Sign in to Skool once in the browser window it opens. You type your password, skrape never sees it.",
+    "Pick a community with the arrow keys.",
+    "Choose Transcripts, or Transcripts + videos.",
+    "Read. Everything lands in ~/skrape/<community>/, one file per lesson."
+  ],
+  usage: [
+    ["skrape", "the guided flow"],
+    ["skrape sync <slug>", "transcripts for skool.com/<slug>, no questions asked"],
+    ["skrape sync <slug> --videos", "transcripts plus every lesson video"],
+    ["skrape login", "sign in again if your session expires"]
+  ],
+  changelog: [
+    ["0.2.2", "Sep 24, 2026", ["Installs on any current Node, with no developer tools needed. skrape now uses the SQLite built into Node, so there is nothing to compile. 0.2.1 could fail at the npm step on Node 24 and newer."]],
+    ["0.2.1", "Sep 24, 2026", ["Everything saves to ~/skrape/<community>, wherever you run it from, and the full path is shown before and after a sync. Re-syncing into a new folder now writes the files instead of calling them already done.", "Picking Transcripts + videos without yt-dlp keeps you on the menu with the install command, instead of ending the session.", "Linux without Chrome works: skrape installs its own Chromium in your home folder, no root needed.", "Sign-in no longer prints its instructions twice."]],
+    ["0.2.0", "Sep 24, 2026", ["Download every lesson video alongside the transcripts: pick Transcripts + videos, or pass --videos. Videos already on disk are skipped, so a re-run only fetches what is new.", "Redesigned terminal flow: a live progress bar with time left, a summary card, and the lessons that need your attention listed worst first.", "One-line installer."]],
+    ["0.1.0", "Aug 5, 2026", ["First release. Pulls a community's whole classroom into readable transcripts, straight from the captions Loom already publishes. No audio download, no speech-to-text."]]
+  ],
+  links: [["source", "https://github.com/abovetopsecret/skrape"]],
+  contact: "Above Top Secret"
+};
+// ============================================================================
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cmd = (c, arg) => `<div class="cmd">${esc(c)}${arg ? ` <b>${esc(arg)}</b>` : ""}</div>`;
+const d = delivery, n = d.steps.length;
+
+document.getElementById("boot").innerHTML = `
+  <div class="logo">${esc(d.name.toUpperCase())}</div>
+  <div><span class="meter"><b></b></span> <span class="ok">OK</span></div>
+  <div>${esc(d.tagline)}</div>
+  <div class="ver">v${esc(d.version)}  ${esc(d.date)}  ${esc(d.requires)}</div>`;
+
+document.getElementById("hero").innerHTML = `
+  <div class="copy"><code id="cmdText">curl -fsSL ${esc(d.installURL)} | bash</code><button id="copyBtn" type="button">Copy</button></div>`;
+document.getElementById("copyBtn").onclick = async () => {
+  const b = document.getElementById("copyBtn");
+  try { await navigator.clipboard.writeText(document.getElementById("cmdText").textContent); b.textContent = "Copied"; }
+  catch { b.textContent = "Select it"; }
+  setTimeout(() => b.textContent = "Copy", 1600);
+};
+
+document.getElementById("log").innerHTML = `
+  ${cmd("install")}
+  <ol class="out plain">${d.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+
+  ${cmd("usage")}
+  <div class="out">${d.usage.map(u => `<p><span class="ok">${esc(u[0])}</span><br><span class="k">${esc(u[1])}</span></p>`).join("")}</div>
+
+  ${cmd("changelog")}
+  <div class="out">${d.changelog.map(v => `<p class="k">${esc(v[0])}  ${esc(v[1])}</p><ul class="plain">${v[2].map(i => `<li>${esc(i)}</li>`).join("")}</ul>`).join("")}</div>`;
+
+document.getElementById("foot").innerHTML = `<span>${esc(d.contact)}</span> · ${d.links.map(l => `<a href="${esc(l[1])}">${esc(l[0])}</a>`).join(" · ")}`;
+</script>
+
+</body></html>
