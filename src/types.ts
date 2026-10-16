@@ -1,5 +1,12 @@
 export type ItemType = 'lesson' | 'call' | 'post';
 
+/** A lesson attachment: an external link, or a file uploaded to Skool (url null; download it on Skool). */
+export interface Resource {
+  title: string;
+  url: string | null;
+  fileName?: string;
+}
+
 export interface ContentItem {
   nativeId: string;
   type: ItemType;
@@ -13,6 +20,7 @@ export interface ContentItem {
   hasAccess: boolean;
   publishedAt: string | null;
   bodyText: string | null;
+  resources?: Resource[];
 }
 
 export type TranscriptResult =

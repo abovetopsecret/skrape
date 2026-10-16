@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS items (
   has_access INTEGER NOT NULL DEFAULT 1,
   published_at TEXT,
   body_text TEXT,
+  resources TEXT,
   content_hash TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -50,7 +51,7 @@ export function contentHash(item: ContentItem): string {
   const salient = [
     item.nativeId, item.title, item.section ?? '', item.course ?? '',
     item.videoUrl ?? '', String(item.durationMs), item.bodyText ?? '',
-    String(item.hasAccess),
+    String(item.hasAccess), JSON.stringify(item.resources ?? []),
   ].join('\0');
   return createHash('sha256').update(salient).digest('hex');
 }
@@ -79,9 +80,11 @@ export function openDb(path: string): Db {
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
-  // Databases from before 0.3.0 lack out_dir; CREATE TABLE IF NOT EXISTS won't add it.
-  const columns = db.prepare('PRAGMA table_info(communities)').all() as Array<{ name: string }>;
-  if (!columns.some((c) => c.name === 'out_dir')) db.exec('ALTER TABLE communities ADD COLUMN out_dir TEXT');
+  // Databases from before 0.3.0 lack these columns; CREATE TABLE IF NOT EXISTS won't add them.
+  for (const [table, column] of [['communities', 'out_dir'], ['items', 'resources']]) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!columns.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
+  }
 
   return {
     upsertCommunity(slug, name, outDir) {
@@ -101,16 +104,17 @@ export function openDb(path: string): Db {
 
       db.prepare(
         `INSERT INTO items (id, community, type, native_id, section, course, position, title,
-                            url, video_url, duration_ms, has_access, published_at, body_text,
+                            url, video_url, duration_ms, has_access, published_at, body_text, resources,
                             content_hash, updated_at)
          VALUES (@id, @community, @type, @nativeId, @section, @course, @position, @title,
-                 @url, @videoUrl, @durationMs, @hasAccess, @publishedAt, @bodyText,
+                 @url, @videoUrl, @durationMs, @hasAccess, @publishedAt, @bodyText, @resources,
                  @hash, @updatedAt)
          ON CONFLICT(id) DO UPDATE SET
            section = excluded.section, course = excluded.course, position = excluded.position,
            title = excluded.title, url = excluded.url, video_url = excluded.video_url,
            duration_ms = excluded.duration_ms, has_access = excluded.has_access,
            published_at = excluded.published_at, body_text = excluded.body_text,
+           resources = excluded.resources,
            content_hash = excluded.content_hash, updated_at = excluded.updated_at`,
       ).run({
         id, community, type: item.type, nativeId: item.nativeId,
@@ -118,6 +122,7 @@ export function openDb(path: string): Db {
         title: item.title, url: item.url, videoUrl: item.videoUrl,
         durationMs: item.durationMs, hasAccess: item.hasAccess ? 1 : 0,
         publishedAt: item.publishedAt, bodyText: item.bodyText,
+        resources: item.resources?.length ? JSON.stringify(item.resources) : null,
         hash, updatedAt: new Date().toISOString(),
       });
 

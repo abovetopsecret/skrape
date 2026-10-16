@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCourseList, parseCourseTree } from '../../src/discover/skool.js';
+import { parseCourseList, parseCourseTree, parseResources, descriptionText } from '../../src/discover/skool.js';
 import { PayloadParseError } from '../../src/fetch/nextdata.js';
 
 const courseListPayload = {
@@ -206,5 +206,39 @@ describe('parseCourseTree — skipped-node accounting (Finding 4)', () => {
     expect(items).toHaveLength(0);
     expect(skipped).toHaveLength(1);
     expect(skipped[0]!.reason).toMatch(/title/i);
+  });
+});
+
+describe('lesson resources and descriptions', () => {
+  const resources = JSON.stringify([
+    { title: 'RESOURCE DOCUMENT', link: 'https://docs.example.com/doc' },
+    { title: 'Worksheet', file_id: 'f1', file_name: 'worksheet.pdf', file_content_type: 'application/pdf' },
+    { title: 'Bad link', link: 'javascript:alert(1)' },
+  ]);
+  const payload = {
+    props: { pageProps: { course: { course: { name: 'abcd1234' }, children: [
+      { course: { id: 'l1', metadata: { title: 'Lesson', resources, desc: '[v2][{"type":"paragraph","content":[{"type":"text","text":"Read the "},{"type":"text","marks":[{"type":"link","attrs":{"href":"https://x.example"}}],"text":"guide"}]},{"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"Second block"}]}]}]' } } },
+    ] } } },
+  };
+
+  it('keeps links and uploaded files, and drops links that are not http(s)', () => {
+    expect(parseResources(resources)).toEqual([
+      { title: 'RESOURCE DOCUMENT', url: 'https://docs.example.com/doc' },
+      { title: 'Worksheet', url: null, fileName: 'worksheet.pdf' },
+    ]);
+    expect(parseResources('not json')).toEqual([]);
+  });
+
+  it('flattens rich-text descriptions into paragraphs, keeping link targets', () => {
+    expect(descriptionText(payload.props.pageProps.course.children[0]!.course.metadata.desc)).toBe('Read the guide (https://x.example)\n\nSecond block');
+    expect(descriptionText('plain text')).toBe('plain text');
+    expect(descriptionText('')).toBeNull();
+  });
+
+  it('gives each lesson its resources, description and Skool URL', () => {
+    const [lesson] = parseCourseTree(payload, 'Course', 'demo').items;
+    expect(lesson!.url).toBe('https://www.skool.com/demo/classroom/abcd1234?md=l1');
+    expect(lesson!.resources).toHaveLength(2);
+    expect(lesson!.bodyText).toMatch(/^Read the guide/);
   });
 });

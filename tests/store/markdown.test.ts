@@ -141,3 +141,17 @@ describe('writeTranscript', () => {
     expect(path).toContain('/100-');
   });
 });
+
+describe('writeTranscript resources', () => {
+  it('lists links, and points uploaded files at the lesson on Skool', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'skrape-md-'));
+    const path = await writeTranscript(dir, {
+      ...item, url: 'https://www.skool.com/demo/classroom/abcd1234?md=l1', bodyText: 'Watch this first.',
+      resources: [{ title: 'Doc [v2]', url: 'https://docs.example.com/doc' }, { title: 'Worksheet', url: null, fileName: 'worksheet.pdf' }],
+    }, 'body', { wordCount: 1, sourceUrl: 'x' });
+    const text = await readFile(path, 'utf-8');
+    expect(text).toContain('Watch this first.');
+    expect(text).toContain('- [Doc \\[v2\\]](https://docs.example.com/doc)');
+    expect(text).toContain('- Worksheet (worksheet.pdf): [download on Skool](https://www.skool.com/demo/classroom/abcd1234?md=l1)');
+  });
+});

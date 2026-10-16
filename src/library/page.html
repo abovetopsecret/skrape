@@ -70,6 +70,12 @@ h1 { font: 44px/1.02 "VT323", var(--mono); color: var(--phos); text-shadow: 0 0 
 .btn:hover, .btn.on { color: var(--phos); border-color: var(--phos); }
 .player { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; margin: 0 0 14px; }
 .player video { width: 100%; max-height: 42vh; display: block; background: #000; border: 1px solid var(--line); }
+.res { border: 1px solid var(--line); background: var(--bg-2); padding: 12px 16px; margin-bottom: 22px; }
+.res .sec { margin-bottom: 8px; }
+.res a { display: flex; gap: 10px; padding: 5px 0; color: var(--ink); text-decoration: none; }
+.res a:hover { color: var(--phos); }
+.res a span { color: var(--ink-3); flex: none; }
+.res a small { color: var(--ink-3); margin-left: auto; padding-left: 12px; white-space: nowrap; }
 .desc { color: var(--ink-2); border-left: 2px solid var(--ink-3); padding-left: 14px; margin-bottom: 22px; white-space: pre-wrap; }
 .tx.seekable p, .tx.seekable mark { scroll-margin-top: 48vh; }
 .tx p { margin: 0 0 4px; padding: 8px 12px; border-left: 2px solid transparent; transition: background .2s, border-color .2s; }
@@ -235,6 +241,21 @@ function home() {
   $('#main').scrollTop = 0;
 }
 
+// Links open directly; files uploaded to Skool have no public link, so they open the lesson to download.
+function resourcesHtml(it) {
+  let list = [];
+  try { list = JSON.parse(it.resources || '[]'); } catch {}
+  const safe = (u) => /^https?:\/\//.test(u || '') ? u : null;
+  const rows = list.map((r) => {
+    const href = safe(r.url) || safe(it.url);
+    const label = esc(r.title) + (r.fileName && r.fileName !== r.title ? ' <span>' + esc(r.fileName) + '</span>' : '');
+    const where = r.url ? (() => { try { return new URL(r.url).hostname.replace(/^www\./, ''); } catch { return ''; } })() : 'download on skool';
+    return href ? '<a href="' + esc(href) + '" target="_blank" rel="noreferrer"><span>' + (r.url ? '↗' : '↓') + '</span>' + label + '<small>' + esc(where) + '</small></a>'
+      : '<a><span>↓</span>' + label + '<small>on skool</small></a>';
+  }).join('');
+  return rows ? '<div class="res"><div class="sec">resources · ' + list.length + '</div>' + rows + '</div>' : '';
+}
+
 async function lesson(id, q) {
   const it = await api('/api/item?id=' + encodeURIComponent(id));
   if (!it) return home();
@@ -255,7 +276,7 @@ async function lesson(id, q) {
     return '<p' + (t !== null ? ' data-t="' + t + '"' : '') + '>' + (m ? '<span class="ts" data-t="' + t + '">' + m[1] + ':' + m[2] + '</span>' : '') + body + '</p>';
   }).join('');
   const minutes = Math.round((it.duration_ms || 0) / 60000);
-  const missing = !it.text ? '<div class="note"><b>No transcript.</b> ' + esc(it.reason || (it.status ? it.status : 'This lesson has no video with captions.')) + '</div>' : '';
+  const missing = !it.text ? '<div class="note"><b>No transcript.</b> ' + esc(it.reason || it.status || (it.duration_ms ? 'Not fetched yet. Sync this community again to get it.' : 'This lesson has no video.')) + '</div>' : '';
   $('#main').innerHTML = '<div class="wrap">' +
     '<div class="crumb"><b>' + esc(it.community) + '</b> / ' + esc(it.course ?? '') + (it.section ? ' / ' + esc(it.section) : '') + '</div>' +
     '<h1>' + esc(it.title) + '</h1>' +
@@ -263,6 +284,7 @@ async function lesson(id, q) {
     '<div class="tools">' + (it.text ? '<button class="btn" id="copy">copy text</button>' : '') + (it.has_video ? '<button class="btn on" id="follow">follow video</button>' : '') + (it.url ? '<a class="btn" href="' + esc(it.url) + '" target="_blank" rel="noreferrer">open on skool ↗</a>' : '') + '</div>' +
     (it.has_video ? '<div class="player"><video id="vid" controls preload="metadata" src="/video?id=' + encodeURIComponent(id) + '"></video></div>' : '') +
     (it.body_text ? '<div class="desc">' + esc(it.body_text) + '</div>' : '') +
+    resourcesHtml(it) +
     missing + '<div class="tx' + (it.has_video ? ' seekable' : '') + '" id="tx">' + paras + '</div>' +
     '<div class="pager">' + (prev ? '<a href="#/l/' + encodeURIComponent(prev.id) + '"><small>‹ previous</small>' + esc(prev.title) + '</a>' : '<span></span>') + (next ? '<a href="#/l/' + encodeURIComponent(next.id) + '" style="text-align:right"><small>next ›</small>' + esc(next.title) + '</a>' : '') + '</div>' +
     '</div>';

@@ -45,7 +45,7 @@ export function startLibrary({ dbFile, outRoot, port }: LibraryOptions): Promise
 
   const lessonRow = (id: string): Row | undefined => all(
     `SELECT i.id, i.community, i.course, i.section, i.position, i.title, i.url, i.duration_ms,
-            i.body_text, t.status, t.reason, t.text, t.word_count, t.source_url
+            i.body_text, i.resources, t.status, t.reason, t.text, t.word_count, t.source_url
      FROM items i LEFT JOIN transcripts t ON t.item_id = i.id WHERE i.id = ?`, id)[0];
 
   // Where the last sync wrote (recorded since 0.3.0), then the default folder for older syncs.

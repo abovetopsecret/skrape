@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { ContentItem } from '../types.js';
+import type { ContentItem, Resource } from '../types.js';
 
 export function slugify(text: string, maxLength = 60): string {
   const cleaned = text
@@ -30,6 +30,13 @@ export function videoPath(outDir: string, item: ContentItem, padWidth = 2): stri
   return lessonPath(outDir, 'videos', 'mp4', item, padWidth);
 }
 
+/** Files uploaded to Skool have no public link, so point at the lesson where they can be downloaded. */
+function resourceLine(resource: Resource, lessonUrl: string | null): string {
+  if (resource.url) return `- [${resource.title.replace(/[[\]]/g, '\\$&')}](${resource.url})`;
+  const where = lessonUrl ? `[download on Skool](${lessonUrl})` : 'download on Skool';
+  return `- ${resource.title}${resource.fileName && resource.fileName !== resource.title ? ` (${resource.fileName})` : ''}: ${where}`;
+}
+
 export async function writeTranscript(
   outDir: string,
   item: ContentItem,
@@ -53,6 +60,10 @@ export async function writeTranscript(
       `  |  ${minutes} min  |  ${meta.wordCount.toLocaleString('en-US')} words`,
     `> Source: ${meta.sourceUrl}`,
     '',
+    ...(item.bodyText ? [item.bodyText, ''] : []),
+    ...(item.resources?.length
+      ? ['**Resources**', '', ...item.resources.map((r) => resourceLine(r, item.url)), '']
+      : []),
     '---',
     '',
   ].join('\n');
