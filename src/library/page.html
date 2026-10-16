@@ -167,14 +167,24 @@ const glyph = (it) => !it.has_access ? ['bad', '⊘', 'locked'] : it.has_video ?
 const hl = (html, q) => q ? html.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>') : html;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1400); }
 
-async function boot() {
+async function load() {
   library = await api('/api/library');
   flat = library.flatMap((c) => c.items);
   const words = flat.reduce((s, i) => s + (i.word_count || 0), 0);
   const watch = flat.reduce((s, i) => s + (i.duration_ms || 0), 0) / 60000;
   $('#stats').innerHTML = '<b>' + fmtNum(flat.length) + '</b> lessons · <b>' + fmtNum(words) + '</b> words · <b>' + fmtTime(watch) + '</b> of video';
   renderNav();
-  route();
+}
+async function boot() { await load(); route(); }
+// A sync may have run while you were away; pick it up without disturbing what's open.
+addEventListener('focus', () => { load().then(() => { if (!current && !location.hash.startsWith('#/s/')) home(); }).catch(() => {}); });
+
+// In the desktop app, new-tab links would go nowhere; navigating hands them to your browser instead.
+if (!location.protocol.startsWith('http')) {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[target="_blank"]');
+    if (a) { e.preventDefault(); location.href = a.href; }
+  });
 }
 
 function renderNav() {
@@ -210,7 +220,7 @@ $('#menu').onclick = () => document.body.classList.toggle('nav-open');
 function home() {
   current = null; renderNav();
   if (!flat.length) {
-    $('#main').innerHTML = '<div class="wrap"><div class="big">empty shelf</div><p class="lede">Nothing synced yet. Pull a community you belong to and it shows up here, transcripts and videos side by side.</p><div class="cmdline">skrape</div><p class="lede">Then run <b>skrape library</b> again.</p></div>';
+    $('#main').innerHTML = '<div class="wrap"><div class="big">empty shelf</div><p class="lede">Nothing synced yet. Pull a community you belong to and it shows up here, transcripts and videos side by side.</p><div class="cmdline">skrape</div><p class="lede">Then come back here. The library refreshes on its own.</p></div>';
     return;
   }
   const words = flat.reduce((s, i) => s + (i.word_count || 0), 0);

@@ -99,6 +99,9 @@ ul { margin: 6px 0 0; padding-left: 2ch; } li { margin: 4px 0; }
 .note { border-left: 2px solid var(--amber); padding: 6px 12px; margin: 10px 0; color: var(--ink-2); max-width: 70ch; }
 
 .cursor { display: inline-block; width: .6ch; height: 1.1em; background: var(--phos); vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+.dl { display: inline-block; margin: 4px 0 6px; padding: 10px 16px; border: 1px solid var(--phos); color: var(--phos); text-decoration: none; letter-spacing: .06em; box-shadow: var(--glow); }
+.dl::before { content: "↓ "; }
+.dl:hover, .dl:focus-visible { background: var(--phos); color: #000; text-shadow: none; outline: none; }
 .foot { margin-top: 30px; color: var(--ink-3); font-size: 12px; }
 ol.plain { margin: 6px 0 0; padding-left: 2.2ch; max-width: 68ch; } ol.plain li { margin: 4px 0; }
 ul.plain { margin: 2px 0 12px; padding-left: 2ch; max-width: 68ch; list-style: "- "; } ul.plain li { margin: 3px 0; }
@@ -139,8 +142,20 @@ const delivery = {
     "Pick a community with the arrow keys.",
     "Choose Transcripts, or Transcripts + videos.",
     "Read. Everything lands in ~/skrape/<community>/, one file per lesson.",
-    "Run skrape library to browse it all in your browser: search every transcript, watch with the text alongside."
+    "Browse it all in the skrape library app (download below), or run skrape library to open it in your browser."
   ],
+  app: {
+    url: "https://github.com/abovetopsecret/skrape/releases/latest/download/skrape-library-mac.dmg",
+    label: "Download skrape library for Mac",
+    about: "Your skraped courses in their own window: search every transcript, read course by course, and watch downloaded videos with the transcript alongside. Reads what skrape saved on your Mac, nothing is uploaded. Apple Silicon and Intel, macOS 11+, 7 MB.",
+    unsigned: [
+      "Open the download and drag skrape library into Applications.",
+      "Open it. macOS says it can't verify the app, because skrape isn't signed with an Apple developer certificate yet. Click Done.",
+      "Open System Settings, go to Privacy & Security, scroll down, and click Open Anyway next to skrape library. Confirm once more.",
+      "From then on it opens normally."
+    ],
+    terminal: 'xattr -dr com.apple.quarantine "/Applications/skrape library.app"'
+  },
   usage: [
     ["skrape", "the guided flow"],
     ["skrape sync <slug>", "transcripts for skool.com/<slug>, no questions asked"],
@@ -149,7 +164,7 @@ const delivery = {
     ["skrape login", "sign in again if your session expires"]
   ],
   changelog: [
-    ["0.3.0", "Oct 16, 2026", ["skrape library: a local web library of everything you have skraped. Search every transcript at once, read lesson by lesson, and play downloaded videos next to the text. Click a timestamp to jump the video there; the transcript follows along as it plays. Videos are found wherever you saved them, including a custom -o folder. Lessons now keep their description and resources (docs, worksheets, uploaded files), in the library and at the top of each transcript. Runs on your machine only, nothing is uploaded."]],
+    ["0.3.0", "Oct 16, 2026", ["skrape library for Mac: a desktop app for everything you have skraped. Nothing needs to be running in a terminal.", "skrape library: a local web library of everything you have skraped. Search every transcript at once, read lesson by lesson, and play downloaded videos next to the text. Click a timestamp to jump the video there; the transcript follows along as it plays. Videos are found wherever you saved them, including a custom -o folder. Lessons now keep their description and resources (docs, worksheets, uploaded files), in the library and at the top of each transcript. Runs on your machine only, nothing is uploaded."]],
     ["0.2.2", "Sep 24, 2026", ["Installs on any current Node, with no developer tools needed. skrape now uses the SQLite built into Node, so there is nothing to compile. 0.2.1 could fail at the npm step on Node 24 and newer."]],
     ["0.2.1", "Sep 24, 2026", ["Everything saves to ~/skrape/<community>, wherever you run it from, and the full path is shown before and after a sync. Re-syncing into a new folder now writes the files instead of calling them already done.", "Picking Transcripts + videos without yt-dlp keeps you on the menu with the install command, instead of ending the session.", "Linux without Chrome works: skrape installs its own Chromium in your home folder, no root needed.", "Sign-in no longer prints its instructions twice."]],
     ["0.2.0", "Sep 24, 2026", ["Download every lesson video alongside the transcripts: pick Transcripts + videos, or pass --videos. Videos already on disk are skipped, so a re-run only fetches what is new.", "Redesigned terminal flow: a live progress bar with time left, a summary card, and the lessons that need your attention listed worst first.", "One-line installer."]],
@@ -182,6 +197,16 @@ document.getElementById("copyBtn").onclick = async () => {
 document.getElementById("log").innerHTML = `
   ${cmd("install")}
   <ol class="out plain">${d.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+
+  ${cmd("library app")}
+  <div class="out">
+    <p>${esc(d.app.about)}</p>
+    <p><a class="dl" href="${esc(d.app.url)}">${esc(d.app.label)}</a></p>
+    <p class="k">first launch, once:</p>
+    <ol class="plain">${d.app.unsigned.map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+    <p class="k">or skip the dialog from Terminal:</p>
+    <p><span class="ok">${esc(d.app.terminal)}</span></p>
+  </div>
 
   ${cmd("usage")}
   <div class="out">${d.usage.map(u => `<p><span class="ok">${esc(u[0])}</span><br><span class="k">${esc(u[1])}</span></p>`).join("")}</div>

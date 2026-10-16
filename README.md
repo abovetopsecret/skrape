@@ -63,6 +63,15 @@ wherever you run skrape from.
 
 ### Browsing your library
 
+On a Mac, download the **skrape library** app from
+[skrape.abovetopsecret.ai](https://skrape.abovetopsecret.ai). It reads what
+skrape saved, in its own window, with nothing running in a terminal. It isn't
+signed with an Apple developer certificate yet, so the first time, open it,
+click Done, then go to System Settings → Privacy & Security and click
+**Open Anyway**. The app's source is in `desktop/`.
+
+From the terminal instead:
+
     skrape library
 
 Opens a local web library of everything you've synced, in your browser:
