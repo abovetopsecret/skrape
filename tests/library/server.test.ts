@@ -13,6 +13,8 @@ const lesson: ContentItem = {
   url: null, videoUrl: 'https://www.loom.com/share/a', durationMs: 60_000, hasAccess: true, publishedAt: null, bodyText: null,
 };
 
+const other: ContentItem = { ...lesson, nativeId: 'l2', title: 'Elsewhere' };
+
 describe('library server', () => {
   let dir: string, server: Server, url: string;
 
@@ -22,18 +24,30 @@ describe('library server', () => {
     db.upsertCommunity('demo', 'demo');
     const { id } = db.upsertItem('demo', lesson);
     db.saveTranscript(id, { status: 'ok', text: '[0:00] Sell the outcome.\n\n[0:30] Deliver the system.', wordCount: 6, provider: 'loom', sourceUrl: 'x' });
+    // A second community synced with -o somewhere else: its folder is recorded, not under outRoot.
+    db.upsertCommunity('elsewhere', 'elsewhere', join(dir, 'custom', 'elsewhere'));
+    db.upsertItem('elsewhere', other);
     db.close();
-    const video = videoPath(join(dir, 'out', 'demo'), lesson, 2);
-    mkdirSync(dirname(video), { recursive: true });
-    writeFileSync(video, '0123456789');
+    for (const video of [videoPath(join(dir, 'out', 'demo'), lesson, 2), videoPath(join(dir, 'custom', 'elsewhere'), other, 3)]) {
+      mkdirSync(dirname(video), { recursive: true });
+      writeFileSync(video, '0123456789');
+    }
     ({ server, url } = await startLibrary({ dbFile: join(dir, 'skool.db'), outRoot: join(dir, 'out'), port: 0 }));
   });
   afterAll(() => { server.close(); rmSync(dir, { recursive: true, force: true }); });
 
   it('lists communities with their lessons and finds videos on disk', async () => {
-    const [community] = await (await fetch(`${url}api/library`)).json();
-    expect(community.items).toHaveLength(1);
-    expect(community.items[0]).toMatchObject({ title: 'Pricing 100%', status: 'ok', has_video: true });
+    const communities = await (await fetch(`${url}api/library`)).json();
+    const demo = communities.find((c: { slug: string }) => c.slug === 'demo');
+    expect(demo.items).toHaveLength(1);
+    expect(demo.items[0]).toMatchObject({ title: 'Pricing 100%', status: 'ok', has_video: true });
+  });
+
+  it('finds videos in the folder a sync recorded, even outside the default', async () => {
+    const communities = await (await fetch(`${url}api/library`)).json();
+    expect(communities.find((c: { slug: string }) => c.slug === 'elsewhere').items[0].has_video).toBe(true);
+    const res = await fetch(`${url}video?id=${encodeURIComponent('elsewhere:lesson:l2')}`);
+    expect(res.status).toBe(200);
   });
 
   it('searches transcripts and treats % literally', async () => {

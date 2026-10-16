@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { openDb, contentHash, type Db } from '../../src/store/db.js';
 import type { ContentItem } from '../../src/types.js';
 import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
 
 const item = (overrides: Partial<ContentItem> = {}): ContentItem => ({
@@ -112,5 +114,17 @@ describe('contentHash', () => {
   });
   it('changes when hasAccess changes', () => {
     expect(contentHash(item())).not.toBe(contentHash(item({ hasAccess: false })));
+  });
+
+  it('adds out_dir to a database created before 0.3.0', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'skrape-db-'));
+    const path = join(dir, 'old.db');
+    const old = new DatabaseSync(path);
+    old.exec('CREATE TABLE communities (slug TEXT PRIMARY KEY, name TEXT, last_synced_at TEXT)');
+    old.close();
+    const upgraded = openDb(path);
+    expect(() => upgraded.upsertCommunity('demo', 'Demo', '/tmp/x')).not.toThrow();
+    upgraded.close();
+    rmSync(dir, { recursive: true, force: true });
   });
 });

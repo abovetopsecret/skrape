@@ -100,7 +100,7 @@ export async function syncClassroom(options: SyncOptions): Promise<SyncSummary> 
   const problems: Problem[] = [];
   let totalWords = 0;
 
-  db.upsertCommunity(slug, slug);
+  db.upsertCommunity(slug, slug, outDir);
 
   const courses = await listCourses(slug, fetcher);
   const accessible = courses.filter((course) => course.hasAccess);

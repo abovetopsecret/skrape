@@ -15,12 +15,17 @@ export interface LibraryOptions {
   port: number;
 }
 
-/** Where sync put a lesson's video. The db doesn't keep padWidth, so try the widths sync can produce. */
-export function findVideo(outRoot: string, community: string, course: string | null, position: number, title: string): string | null {
-  const dir = join(outRoot, community, 'videos', slugify(course ?? 'uncategorized'));
-  for (let width = 2; width <= 5; width++) {
-    const path = join(dir, `${String(position).padStart(width, '0')}-${slugify(title)}.mp4`);
-    if (existsSync(path)) return path;
+/**
+ * Where sync put a lesson's video, checking each candidate community folder in order.
+ * The db doesn't keep padWidth, so try the widths sync can produce.
+ */
+export function findVideo(communityDirs: string[], course: string | null, position: number, title: string): string | null {
+  for (const communityDir of communityDirs) {
+    const dir = join(communityDir, 'videos', slugify(course ?? 'uncategorized'));
+    for (let width = 2; width <= 5; width++) {
+      const path = join(dir, `${String(position).padStart(width, '0')}-${slugify(title)}.mp4`);
+      if (existsSync(path)) return path;
+    }
   }
   return null;
 }
@@ -43,8 +48,15 @@ export function startLibrary({ dbFile, outRoot, port }: LibraryOptions): Promise
             i.body_text, t.status, t.reason, t.text, t.word_count, t.source_url
      FROM items i LEFT JOIN transcripts t ON t.item_id = i.id WHERE i.id = ?`, id)[0];
 
+  // Where the last sync wrote (recorded since 0.3.0), then the default folder for older syncs.
+  // A db last written before 0.3.0 has no out_dir column, and read-only can't add it.
+  const hasOutDir = all('PRAGMA table_info(communities)').some((c) => c.name === 'out_dir');
+  const dirsFor = (slug: string): string[] => {
+    const recorded = hasOutDir ? all('SELECT out_dir FROM communities WHERE slug = ?', slug)[0]?.out_dir : null;
+    return [...new Set([recorded, join(outRoot, slug)].filter((d): d is string => typeof d === 'string'))];
+  };
   const videoFor = (row: Row): string | null =>
-    findVideo(outRoot, String(row.community), row.course as string | null, Number(row.position), String(row.title));
+    findVideo(dirsFor(String(row.community)), row.course as string | null, Number(row.position), String(row.title));
 
   const routes: Record<string, (q: URLSearchParams) => unknown> = {
     '/api/library': () => {

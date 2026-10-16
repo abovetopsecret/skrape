@@ -9,7 +9,8 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS communities (
   slug TEXT PRIMARY KEY,
   name TEXT,
-  last_synced_at TEXT
+  last_synced_at TEXT,
+  out_dir TEXT
 );
 CREATE TABLE IF NOT EXISTS items (
   id TEXT PRIMARY KEY,
@@ -55,7 +56,8 @@ export function contentHash(item: ContentItem): string {
 }
 
 export interface Db {
-  upsertCommunity(slug: string, name: string): void;
+  /** outDir records where a sync writes files, so the library can find them later. */
+  upsertCommunity(slug: string, name: string, outDir?: string): void;
   upsertItem(community: string, item: ContentItem): { id: string; changed: boolean };
   saveTranscript(itemId: string, result: TranscriptResult): void;
   getTranscriptStatus(itemId: string): string | null;
@@ -77,13 +79,17 @@ export function openDb(path: string): Db {
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
+  // Databases from before 0.3.0 lack out_dir; CREATE TABLE IF NOT EXISTS won't add it.
+  const columns = db.prepare('PRAGMA table_info(communities)').all() as Array<{ name: string }>;
+  if (!columns.some((c) => c.name === 'out_dir')) db.exec('ALTER TABLE communities ADD COLUMN out_dir TEXT');
 
   return {
-    upsertCommunity(slug, name) {
+    upsertCommunity(slug, name, outDir) {
       db.prepare(
-        `INSERT INTO communities (slug, name) VALUES (?, ?)
-         ON CONFLICT(slug) DO UPDATE SET name = excluded.name`,
-      ).run(slug, name);
+        `INSERT INTO communities (slug, name, out_dir) VALUES (?, ?, ?)
+         ON CONFLICT(slug) DO UPDATE SET name = excluded.name,
+           out_dir = COALESCE(excluded.out_dir, communities.out_dir)`,
+      ).run(slug, name, outDir ?? null);
     },
 
     upsertItem(community, item) {
