@@ -61,6 +61,15 @@ Output lands in `~/skrape/<slug>/transcripts/<course>/NN-lesson.md`, and videos
 (if you asked for them) in `~/skrape/<slug>/videos/<course>/NN-lesson.mp4`,
 wherever you run skrape from.
 
+### Browsing your library
+
+    skrape library
+
+Opens a local web library of everything you've synced, in your browser:
+search every transcript at once, read course by course, and play downloaded
+videos with the transcript alongside. Click a timestamp to jump the video
+there. It runs on `127.0.0.1` only and never uploads anything. Ctrl+C stops it.
+
 ### Downloading videos
 
 Video downloads are opt-in and use [yt-dlp](https://github.com/yt-dlp/yt-dlp),
@@ -82,6 +91,7 @@ The underlying subcommands work directly too, without the guided flow:
     skrape sync <slug>                # slug is the part after skool.com/
     skrape sync <slug> -o ~/notes -c 4  # custom output dir / concurrency
     skrape sync <slug> --videos       # transcripts + every lesson video
+    skrape library                    # browse it all in a local web UI
 
 ### Building from source
 

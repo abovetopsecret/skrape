@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skrape library</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 fill=%22%23040604%22/%3E%3Crect x=%224%22 y=%223%22 width=%228%22 height=%222%22 fill=%22%235DF07A%22/%3E%3Crect x=%224%22 y=%227%22 width=%228%22 height=%222%22 fill=%22%235DF07A%22/%3E%3Crect x=%224%22 y=%2211%22 width=%228%22 height=%222%22 fill=%22%235DF07A%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Same phosphor-on-black terminal as skrape.abovetopsecret.ai. */
+:root {
+  --bg: #040604; --bg-2: #0A0F0A; --frame: #111811; --line: #1D2A1E;
+  --ink: #C9F5CF; --ink-2: #7FBF8C; --ink-3: #3F6B49;
+  --phos: #5DF07A; --phos-dim: #2E7D46; --amber: #E6B450; --red: #E5484D;
+  --glow: 0 0 6px rgba(93, 240, 122, .35);
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 var(--mono); overflow: hidden; }
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.5) 100%);
+}
+::selection { background: var(--phos); color: #000; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+a { color: var(--phos); }
+:focus-visible { outline: 1px solid var(--phos); outline-offset: 2px; }
+::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-thumb { background: var(--frame); border: 2px solid var(--bg); }
+
+.app { display: grid; grid-template-columns: 330px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+header {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 10px 18px;
+  background: var(--frame); border-bottom: 1px solid var(--line);
+}
+.logo { font: 34px/1 "VT323", var(--mono); color: var(--phos); text-shadow: 0 0 14px rgba(93,240,122,.5); letter-spacing: .04em; text-decoration: none; white-space: nowrap; }
+.logo small { font-size: 20px; color: var(--ink-3); text-shadow: none; margin-left: 6px; }
+.search { flex: 1; max-width: 560px; display: flex; align-items: center; gap: 8px; background: #000; border: 1px solid var(--line); padding: 7px 12px; }
+.search:focus-within { border-color: var(--phos-dim); box-shadow: var(--glow); }
+.search span { color: var(--phos); }
+.search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--ink); font: inherit; }
+.search kbd { color: var(--ink-3); font: 11px var(--mono); border: 1px solid var(--line); padding: 0 5px; }
+.stats { margin-left: auto; color: var(--ink-2); font-size: 12px; letter-spacing: .06em; white-space: nowrap; }
+.stats b { color: var(--phos); font-weight: 400; }
+.menu { display: none; color: var(--phos); font-size: 18px; }
+
+nav { overflow-y: auto; border-right: 1px solid var(--line); background: var(--bg-2); padding: 10px 0 40px; }
+.community > button { width: 100%; text-align: left; padding: 10px 16px 4px; color: var(--amber); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.course > button { width: 100%; text-align: left; display: flex; gap: 8px; padding: 6px 16px; color: var(--ink); }
+.course > button:hover { color: var(--phos); }
+.course > button .caret { color: var(--ink-3); width: 1ch; flex: none; }
+.course > button .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course > button .count { color: var(--ink-3); font-size: 12px; }
+.course ol { list-style: none; margin: 0 0 6px; padding: 0; }
+.course:not(.open) ol { display: none; }
+.lesson { display: flex; gap: 10px; padding: 4px 16px 4px 34px; color: var(--ink-2); text-decoration: none; font-size: 13px; border-left: 2px solid transparent; }
+.lesson:hover { color: var(--ink); background: rgba(93,240,122,.04); }
+.lesson.read { color: var(--ink-3); }
+.lesson.on { color: var(--phos); border-left-color: var(--phos); background: rgba(93,240,122,.07); text-shadow: var(--glow); }
+.lesson .g { width: 1.4ch; flex: none; text-align: center; }
+.lesson .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g.ok { color: var(--phos); } .g.vid { color: var(--amber); } .g.no { color: var(--ink-3); } .g.bad { color: var(--red); }
+
+main { overflow-y: auto; scroll-behavior: smooth; }
+.wrap { max-width: 780px; margin: 0 auto; padding: 34px 28px 120px; }
+.crumb { color: var(--ink-3); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.crumb b { color: var(--amber); font-weight: 400; }
+h1 { font: 44px/1.02 "VT323", var(--mono); color: var(--phos); text-shadow: 0 0 16px rgba(93,240,122,.35); margin: 10px 0 12px; letter-spacing: .01em; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 12px; margin-bottom: 18px; }
+.meta b { color: var(--ink); font-weight: 400; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.btn { border: 1px solid var(--ink-3); color: var(--ink-2); padding: 4px 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
+.btn:hover, .btn.on { color: var(--phos); border-color: var(--phos); }
+.player { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; margin: 0 0 14px; }
+.player video { width: 100%; max-height: 42vh; display: block; background: #000; border: 1px solid var(--line); }
+.desc { color: var(--ink-2); border-left: 2px solid var(--ink-3); padding-left: 14px; margin-bottom: 22px; white-space: pre-wrap; }
+.tx.seekable p, .tx.seekable mark { scroll-margin-top: 48vh; }
+.tx p { margin: 0 0 4px; padding: 8px 12px; border-left: 2px solid transparent; transition: background .2s, border-color .2s; }
+.tx p.now { background: rgba(93,240,122,.07); border-left-color: var(--phos); }
+.tx .ts { color: var(--ink-3); font-size: 12px; margin-right: 8px; }
+.tx.seekable .ts { color: var(--phos-dim); cursor: pointer; }
+.tx.seekable .ts:hover { color: var(--phos); text-shadow: var(--glow); }
+mark { background: var(--amber); color: #000; padding: 0 2px; }
+.note { border: 1px dashed var(--ink-3); padding: 14px 16px; color: var(--ink-2); }
+.note b { color: var(--amber); font-weight: 400; }
+.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); }
+.pager a { color: var(--ink-2); text-decoration: none; max-width: 48%; }
+.pager a:hover { color: var(--phos); }
+.pager small { display: block; color: var(--ink-3); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+
+.big { font: 76px/0.9 "VT323", var(--mono); color: var(--phos); text-shadow: 0 0 22px rgba(93,240,122,.45); margin: 8px 0 6px; }
+.lede { color: var(--ink-2); max-width: 60ch; margin: 0 0 28px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 32px; }
+.tile { border: 1px solid var(--line); background: var(--bg-2); padding: 12px 14px; }
+.tile small { color: var(--ink-3); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+.tile div { font: 38px/1 "VT323", var(--mono); color: var(--phos); margin-top: 4px; }
+.sec { color: var(--ink-2); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 10px; }
+.cards { display: grid; gap: 8px; margin-bottom: 30px; }
+.card { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); padding: 12px 14px; text-decoration: none; color: var(--ink); background: var(--bg-2); }
+.card:hover { border-color: var(--phos-dim); }
+.card .n { flex: 1; min-width: 0; }
+.card .n div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card small { color: var(--ink-3); font-size: 12px; }
+.bar { width: 120px; height: 8px; border: 1px solid var(--ink-3); position: relative; flex: none; }
+.bar i { position: absolute; inset: 1px auto 1px 1px; background: var(--phos); }
+.hit { display: block; padding: 14px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+.hit:hover .ht { color: var(--phos); }
+.hit .ht { color: var(--ink); margin-bottom: 4px; }
+.hit p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.cmdline { background: #000; border: 1px solid var(--phos-dim); padding: 12px 14px; color: var(--phos); display: inline-block; margin: 6px 0 16px; }
+.cmdline::before { content: "$ "; color: var(--ink-3); }
+.keys { color: var(--ink-3); font-size: 12px; margin-top: 30px; }
+.keys kbd { color: var(--ink-2); border: 1px solid var(--line); padding: 0 5px; font: inherit; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--phos); color: #000; padding: 6px 14px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: 0; transition: opacity .2s; z-index: 60; pointer-events: none; }
+.toast.on { opacity: 1; }
+.cursor::after { content: "█"; animation: blink 1s steps(1) infinite; color: var(--phos); margin-left: 2px; }
+@keyframes blink { 50% { opacity: 0; } }
+
+@media (max-width: 820px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  header { gap: 12px; padding: 10px 16px; }
+  .search { min-width: 0; } .search kbd { display: none; }
+  nav { position: fixed; inset: 57px 0 0 0; z-index: 10; display: none; }
+  body.nav-open nav { display: block; }
+  .menu { display: block; }
+  .stats { display: none; }
+  .logo small { display: none; }
+  .wrap { padding: 22px 16px 100px; }
+  h1 { font-size: 34px; }
+  .bar { width: 70px; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { main { scroll-behavior: auto; } .cursor::after { animation: none; } }
+</style></head>
+<body>
+<div class="app">
+  <header>
+    <button class="menu" id="menu" aria-label="Lessons"><svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor" aria-hidden="true"><rect y="0" width="18" height="2"/><rect y="6" width="18" height="2"/><rect y="12" width="18" height="2"/></svg></button>
+    <a class="logo" href="#/">skrape<small>library</small></a>
+    <label class="search"><span>›</span><input id="q" type="search" placeholder="search every transcript" autocomplete="off" spellcheck="false" aria-label="Search transcripts"><kbd>/</kbd></label>
+    <div class="stats" id="stats"></div>
+  </header>
+  <nav id="nav" aria-label="Library"></nav>
+  <main id="main"><div class="wrap"><p class="cursor">loading library</p></div></main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const api = (path) => fetch(path).then((r) => r.json());
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const READ_WPM = 238;
+const read = new Set(store.get('read', []));
+const openCourses = new Set(store.get('open', []));
+let library = [], flat = [], current = null;
+
+const fmtNum = (n) => Number(n || 0).toLocaleString('en-US');
+const fmtTime = (min) => min < 60 ? Math.round(min) + 'm' : Math.floor(min / 60) + 'h ' + Math.round(min % 60) + 'm';
+const courseKey = (it) => it.community + '\u0000' + (it.course ?? 'Uncategorized');
+const glyph = (it) => !it.has_access ? ['bad', '⊘', 'locked'] : it.has_video ? ['vid', '►', 'video + transcript'] : it.status === 'ok' ? ['ok', '✓', 'transcript'] : ['no', '·', it.status === 'unavailable' ? 'no transcript' : 'no video'];
+const hl = (html, q) => q ? html.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>') : html;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1400); }
+
+async function boot() {
+  library = await api('/api/library');
+  flat = library.flatMap((c) => c.items);
+  const words = flat.reduce((s, i) => s + (i.word_count || 0), 0);
+  const watch = flat.reduce((s, i) => s + (i.duration_ms || 0), 0) / 60000;
+  $('#stats').innerHTML = '<b>' + fmtNum(flat.length) + '</b> lessons · <b>' + fmtNum(words) + '</b> words · <b>' + fmtTime(watch) + '</b> of video';
+  renderNav();
+  route();
+}
+
+function renderNav() {
+  $('#nav').innerHTML = library.map((c) => {
+    const courses = [];
+    for (const it of c.items) {
+      const k = courseKey(it);
+      let course = courses.find((x) => x.key === k);
+      if (!course) courses.push(course = { key: k, name: it.course ?? 'Uncategorized', items: [] });
+      course.items.push(it);
+    }
+    return '<div class="community"><button disabled>' + esc(c.name || c.slug) + '</button>' + courses.map((co) => {
+      const done = co.items.filter((i) => read.has(i.id)).length;
+      return '<div class="course' + (openCourses.has(co.key) ? ' open' : '') + '" data-key="' + esc(co.key) + '">' +
+        '<button><span class="caret">' + (openCourses.has(co.key) ? '▾' : '▸') + '</span><span class="name">' + esc(co.name) + '</span><span class="count">' + done + '/' + co.items.length + '</span></button><ol>' +
+        co.items.map((it) => { const [cls, g, label] = glyph(it); return '<li><a class="lesson' + (read.has(it.id) ? ' read' : '') + (current?.id === it.id ? ' on' : '') + '" href="#/l/' + encodeURIComponent(it.id) + '" data-id="' + esc(it.id) + '"><span class="g ' + cls + '" title="' + label + '">' + g + '</span><span class="t">' + esc(it.title) + '</span></a></li>'; }).join('') +
+        '</ol></div>';
+    }).join('') + '</div>';
+  }).join('');
+}
+
+$('#nav').addEventListener('click', (e) => {
+  const head = e.target.closest('.course > button');
+  if (head) {
+    const key = head.parentElement.dataset.key;
+    openCourses.has(key) ? openCourses.delete(key) : openCourses.add(key);
+    store.set('open', [...openCourses]);
+    renderNav();
+  } else if (e.target.closest('.lesson')) document.body.classList.remove('nav-open');
+});
+$('#menu').onclick = () => document.body.classList.toggle('nav-open');
+
+function home() {
+  current = null; renderNav();
+  if (!flat.length) {
+    $('#main').innerHTML = '<div class="wrap"><div class="big">empty shelf</div><p class="lede">Nothing synced yet. Pull a community you belong to and it shows up here, transcripts and videos side by side.</p><div class="cmdline">skrape</div><p class="lede">Then run <b>skrape library</b> again.</p></div>';
+    return;
+  }
+  const words = flat.reduce((s, i) => s + (i.word_count || 0), 0);
+  const watch = flat.reduce((s, i) => s + (i.status === 'ok' ? i.duration_ms || 0 : 0), 0) / 60000;
+  const readMin = words / READ_WPM;
+  const last = flat.find((i) => i.id === store.get('last', null));
+  const courses = [];
+  for (const it of flat) {
+    let co = courses.find((x) => x.key === courseKey(it));
+    if (!co) courses.push(co = { key: courseKey(it), name: it.course ?? 'Uncategorized', community: it.community, items: [] });
+    co.items.push(it);
+  }
+  $('#main').innerHTML = '<div class="wrap">' +
+    '<div class="crumb">your library</div><div class="big">' + fmtTime(Math.max(0, watch - readMin)) + ' saved</div>' +
+    '<p class="lede">' + fmtTime(watch) + ' of video you can read in about ' + fmtTime(readMin) + ' at ' + READ_WPM + ' words a minute.</p>' +
+    '<div class="grid">' +
+      [['communities', library.length], ['courses', courses.length], ['lessons', flat.length], ['videos on disk', flat.filter((i) => i.has_video).length], ['words', fmtNum(words)], ['read', flat.filter((i) => read.has(i.id)).length + '/' + flat.length]]
+        .map(([k, v]) => '<div class="tile"><small>' + k + '</small><div>' + v + '</div></div>').join('') +
+    '</div>' +
+    (last ? '<div class="sec">pick up where you left off</div><div class="cards"><a class="card" href="#/l/' + encodeURIComponent(last.id) + '"><span class="n"><div>' + esc(last.title) + '</div><small>' + esc(last.course ?? '') + '</small></span><span class="btn">resume ›</span></a></div>' : '') +
+    '<div class="sec">courses</div><div class="cards">' + courses.map((co) => {
+      const done = co.items.filter((i) => read.has(i.id)).length;
+      const next = co.items.find((i) => !read.has(i.id)) ?? co.items[0];
+      return '<a class="card" href="#/l/' + encodeURIComponent(next.id) + '"><span class="n"><div>' + esc(co.name) + '</div><small>' + esc(co.community) + ' · ' + co.items.length + ' lessons · ' + fmtNum(co.items.reduce((s, i) => s + (i.word_count || 0), 0)) + ' words</small></span><span class="bar" title="' + done + ' of ' + co.items.length + ' read"><i style="width:calc(' + (done / co.items.length * 100) + '% - 2px)"></i></span></a>';
+    }).join('') + '</div>' +
+    '<div class="keys"><kbd>/</kbd> search &nbsp; <kbd>j</kbd> <kbd>k</kbd> next / previous lesson &nbsp; <kbd>space</kbd> play / pause &nbsp; <kbd>esc</kbd> home</div>' +
+    '</div>';
+  $('#main').scrollTop = 0;
+}
+
+async function lesson(id, q) {
+  const it = await api('/api/item?id=' + encodeURIComponent(id));
+  if (!it) return home();
+  current = it;
+  if (!q) $('#q').value = '';
+  read.add(id); store.set('read', [...read]); store.set('last', id);
+  const key = courseKey(it);
+  if (!openCourses.has(key)) { openCourses.add(key); store.set('open', [...openCourses]); }
+  renderNav();
+  document.querySelector('.lesson.on')?.scrollIntoView({ block: 'nearest' });
+
+  const i = flat.findIndex((x) => x.id === id);
+  const prev = flat[i - 1], next = flat[i + 1];
+  const paras = (it.text || '').split(/\n\n+/).filter(Boolean).map((p) => {
+    const m = /^\[(\d+):(\d{2})\] /.exec(p);
+    const t = m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    const body = hl(esc(m ? p.slice(m[0].length) : p), q);
+    return '<p' + (t !== null ? ' data-t="' + t + '"' : '') + '>' + (m ? '<span class="ts" data-t="' + t + '">' + m[1] + ':' + m[2] + '</span>' : '') + body + '</p>';
+  }).join('');
+  const minutes = Math.round((it.duration_ms || 0) / 60000);
+  const missing = !it.text ? '<div class="note"><b>No transcript.</b> ' + esc(it.reason || (it.status ? it.status : 'This lesson has no video with captions.')) + '</div>' : '';
+  $('#main').innerHTML = '<div class="wrap">' +
+    '<div class="crumb"><b>' + esc(it.community) + '</b> / ' + esc(it.course ?? '') + (it.section ? ' / ' + esc(it.section) : '') + '</div>' +
+    '<h1>' + esc(it.title) + '</h1>' +
+    '<div class="meta">' + (minutes ? '<span><b>' + minutes + ' min</b> to watch</span>' : '') + (it.word_count ? '<span><b>' + Math.max(1, Math.round(it.word_count / READ_WPM)) + ' min</b> to read</span><span><b>' + fmtNum(it.word_count) + '</b> words</span>' : '') + '</div>' +
+    '<div class="tools">' + (it.text ? '<button class="btn" id="copy">copy text</button>' : '') + (it.has_video ? '<button class="btn on" id="follow">follow video</button>' : '') + (it.url ? '<a class="btn" href="' + esc(it.url) + '" target="_blank" rel="noreferrer">open on skool ↗</a>' : '') + '</div>' +
+    (it.has_video ? '<div class="player"><video id="vid" controls preload="metadata" src="/video?id=' + encodeURIComponent(id) + '"></video></div>' : '') +
+    (it.body_text ? '<div class="desc">' + esc(it.body_text) + '</div>' : '') +
+    missing + '<div class="tx' + (it.has_video ? ' seekable' : '') + '" id="tx">' + paras + '</div>' +
+    '<div class="pager">' + (prev ? '<a href="#/l/' + encodeURIComponent(prev.id) + '"><small>‹ previous</small>' + esc(prev.title) + '</a>' : '<span></span>') + (next ? '<a href="#/l/' + encodeURIComponent(next.id) + '" style="text-align:right"><small>next ›</small>' + esc(next.title) + '</a>' : '') + '</div>' +
+    '</div>';
+  $('#main').scrollTop = 0;
+  if (q) document.querySelector('#tx mark')?.scrollIntoView({ block: 'center' });
+
+  $('#copy')?.addEventListener('click', () => navigator.clipboard.writeText('# ' + it.title + '\n\n' + it.text).then(() => toast('copied')));
+  const vid = $('#vid');
+  if (!vid) return;
+  let follow = true;
+  $('#follow').onclick = (e) => { follow = !follow; e.target.classList.toggle('on', follow); };
+  $('#tx').addEventListener('click', (e) => {
+    const t = e.target.closest('.ts')?.dataset.t;
+    if (t !== undefined) { vid.currentTime = Number(t); vid.play(); }
+  });
+  const ps = [...document.querySelectorAll('#tx p[data-t]')];
+  let lastNow = null;
+  vid.addEventListener('timeupdate', () => {
+    let now = null;
+    for (const p of ps) { if (Number(p.dataset.t) <= vid.currentTime) now = p; else break; }
+    if (now === lastNow) return;
+    lastNow?.classList.remove('now'); now?.classList.add('now'); lastNow = now;
+    if (follow && now && !vid.paused) now.scrollIntoView({ block: 'center' });
+  });
+}
+
+let searchTimer;
+async function search(q) {
+  current = null; renderNav();
+  const hits = await api('/api/search?q=' + encodeURIComponent(q));
+  if ($('#q').value.trim() !== q) return;
+  $('#main').innerHTML = '<div class="wrap"><div class="crumb">search</div><h1>' + hits.length + (hits.length === 60 ? '+' : '') + ' hit' + (hits.length === 1 ? '' : 's') + ' for “' + esc(q) + '”</h1>' +
+    (hits.length ? hits.map((h) => '<a class="hit" href="#/l/' + encodeURIComponent(h.id) + '?q=' + encodeURIComponent(q) + '"><div class="ht">' + hl(esc(h.title), q) + '</div><p><span style="color:var(--amber)">' + esc(h.course ?? '') + '</span> · ' + hl(esc(h.snippet), q) + '</p></a>').join('')
+      : '<p class="lede">Nothing matches. Search looks through every lesson title and transcript.</p>') + '</div>';
+  $('#main').scrollTop = 0;
+}
+$('#q').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  searchTimer = setTimeout(() => { if (q.length >= 2) history.replaceState(null, '', '#/s/' + encodeURIComponent(q)), search(q); else if (!q) location.hash = '#/'; }, 160);
+});
+
+function route() {
+  const h = location.hash.slice(1);
+  let m;
+  if ((m = /^\/l\/([^?]+)(?:\?q=(.*))?$/.exec(h))) lesson(decodeURIComponent(m[1]), m[2] ? decodeURIComponent(m[2]) : '');
+  else if ((m = /^\/s\/(.+)$/.exec(h))) { const q = decodeURIComponent(m[1]); $('#q').value = q; search(q); }
+  else home();
+}
+addEventListener('hashchange', route);
+
+addEventListener('keydown', (e) => {
+  const typing = e.target.matches('input, textarea');
+  if (e.key === 'Escape') { if (typing) { e.target.value = ''; e.target.blur(); } location.hash = '#/'; return; }
+  if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === '/') { e.preventDefault(); $('#q').focus(); $('#q').select(); }
+  else if ((e.key === 'j' || e.key === 'k') && flat.length) {
+    const i = current ? flat.findIndex((x) => x.id === current.id) : -1;
+    const to = flat[e.key === 'j' ? i + 1 : Math.max(0, i - 1)];
+    if (to) location.hash = '#/l/' + encodeURIComponent(to.id);
+  } else if (e.key === ' ' && $('#vid') && e.target.tagName !== 'VIDEO') { e.preventDefault(); const v = $('#vid'); v.paused ? v.play() : v.pause(); }
+});
+
+boot().catch((e) => { $('#main').innerHTML = '<div class="wrap"><div class="note"><b>Could not load the library.</b> ' + esc(e.message) + '</div></div>'; });
+</script>
+</body></html>

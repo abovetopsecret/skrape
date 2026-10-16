@@ -1,6 +1,6 @@
 {
   "name": "@mogulmoretti/skrape",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Read Skool course content instead of watching it — pulls the classroom of a community you belong to into clean, readable transcripts.",
   "keywords": [
     "skool",
@@ -29,7 +29,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "tsc && cp src/library/page.html dist/library/ && chmod +x dist/cli.js",
     "prepublishOnly": "npm run build && npm test",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

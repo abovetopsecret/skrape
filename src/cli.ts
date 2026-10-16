@@ -10,6 +10,7 @@ import { ResilientFetcher } from './fetch/resilient.js';
 import { openDb } from './store/db.js';
 import { syncClassroom } from './sync.js';
 import { formatSummary, type Paint } from './tui/summary.js';
+import { revealOutputFolder } from './tui/reveal.js';
 import { OUTCOME_STYLE, displayPath, formatDuration } from './tui/theme.js';
 import { login, profileDir, dbPath, defaultOutRoot, ensureRoot, isLoggedIn } from './auth/session.js';
 
@@ -88,6 +89,7 @@ program
       console.log('');
       for (const line of formatSummary(summary, displayPath(outDir), paint)) console.log(line);
       console.log(paint('dim', `Finished in ${formatDuration(Date.now() - startedAt)}`));
+      console.log(paint('dim', 'Browse it: skrape library'));
       if (fetcher.escalatedRoutes.size > 0) {
         console.log(paint('dim', `Escalated to browser: ${[...fetcher.escalatedRoutes].join(', ')}`));
       }
@@ -123,6 +125,23 @@ program
         db.close();
       }
     }
+  });
+
+program
+  .command('library')
+  .alias('ui')
+  .option('-o, --out <dir>', 'where your synced communities live', defaultOutRoot())
+  .option('-p, --port <n>', 'local port', '4777')
+  .option('--no-open', "don't open the browser")
+  .description('Browse everything you have skraped in a local web library')
+  .action(async (options: { out: string; port: string; open: boolean }) => {
+    const { startLibrary } = await import('./library/server.js');
+    const opts = { dbFile: dbPath(), outRoot: resolve(options.out), port: Number(options.port) || 4777 };
+    // Port taken (often a library already running): fall back to any free one.
+    const { url } = await startLibrary(opts).catch((error: NodeJS.ErrnoException) =>
+      error.code === 'EADDRINUSE' ? startLibrary({ ...opts, port: 0 }) : Promise.reject(error));
+    console.log(`${paint('bold', '◆ skrape library')} ${paint('dim', 'running at')} ${url}\n${paint('dim', 'Ctrl+C to stop')}`);
+    if (options.open) await revealOutputFolder(url);
   });
 
 /**

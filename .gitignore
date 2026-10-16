@@ -4,3 +4,4 @@ out/
 .env
 dist/
 .DS_Store
+.playwright-mcp/
